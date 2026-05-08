@@ -1,0 +1,177 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: dark;
+  }
+
+  * {
+    scrollbar-color: #6c4a30 #070403;
+  }
+
+  ::selection {
+    background: rgba(214, 154, 69, 0.35);
+    color: #fff4e4;
+  }
+
+  body {
+    @apply bg-pulse-bg text-pulse-white antialiased;
+    min-height: 100vh;
+    background:
+      radial-gradient(circle at 14% 0%, rgba(214, 154, 69, 0.15), transparent 30rem),
+      radial-gradient(circle at 84% 5%, rgba(217, 111, 66, 0.13), transparent 24rem),
+      linear-gradient(135deg, rgba(255, 244, 228, 0.035) 0 1px, transparent 1px 10px),
+      linear-gradient(180deg, #0d0704 0%, #070403 100%);
+    background-size: auto, auto, 10px 10px, auto;
+  }
+}
+
+@layer components {
+  .app-shell {
+    @apply min-h-screen bg-pulse-bg text-pulse-white;
+    background:
+      radial-gradient(circle at 9% 2%, rgba(214, 154, 69, 0.16), transparent 24rem),
+      radial-gradient(circle at 90% 6%, rgba(217, 111, 66, 0.12), transparent 22rem),
+      linear-gradient(135deg, rgba(255, 244, 228, 0.035) 0 1px, transparent 1px 10px),
+      #070403;
+    background-size: auto, auto, 10px 10px, auto;
+  }
+
+  .fp-container {
+    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+  }
+
+  .fp-card {
+    @apply rounded-2xl border border-pulse-border bg-pulse-card shadow-card;
+    background-image: linear-gradient(145deg, rgba(255, 244, 228, .055), rgba(255, 244, 228, .015) 38%, rgba(214, 154, 69, .055));
+  }
+
+  .fp-card-subtle {
+    @apply rounded-2xl border border-pulse-border bg-pulse-card/90 shadow-card;
+    background-image: linear-gradient(145deg, rgba(255, 244, 228, .05), rgba(255, 244, 228, .012) 42%, rgba(214, 154, 69, .04));
+  }
+
+  .fp-input {
+    @apply w-full rounded-xl border border-pulse-border bg-pulse-card2 px-4 py-3 text-sm text-pulse-white placeholder:text-pulse-muted outline-none transition duration-150 focus:border-pulse-lavender focus:ring-2 focus:ring-pulse-violet/20;
+  }
+
+  .fp-label {
+    @apply mb-2 block text-[11px] font-semibold uppercase tracking-[0.18em] text-pulse-muted;
+  }
+
+  .fp-btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl border border-pulse-violet bg-pulse-violet px-4 py-2.5 text-sm font-semibold text-pulse-paper shadow-glow transition duration-150 hover:bg-pulse-lavender disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .fp-btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl border border-pulse-line bg-pulse-card2 px-4 py-2.5 text-sm font-semibold text-pulse-white transition duration-150 hover:border-pulse-violet hover:bg-pulse-card;
+  }
+
+  .fp-btn-muted {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl bg-pulse-card2 px-4 py-2.5 text-sm font-semibold text-pulse-soft transition duration-150 hover:bg-pulse-border hover:text-pulse-white;
+  }
+
+  .fp-badge {
+    @apply inline-flex items-center gap-1 rounded-lg border px-2 py-1 text-[11px] font-semibold uppercase tracking-[0.08em];
+  }
+
+  .fp-tab {
+    @apply border-b-2 border-transparent px-5 py-3 text-[13px] font-bold uppercase tracking-[0.18em] text-pulse-muted transition duration-150 hover:text-pulse-white;
+  }
+
+  .fp-tab-active {
+    @apply border-pulse-white text-pulse-white;
+  }
+
+  .fp-glow-hover {
+    @apply transition duration-150 hover:border-pulse-violet hover:shadow-glow;
+  }
+
+  .fp-display {
+    @apply font-display tracking-[-0.04em] text-pulse-white;
+  }
+
+  .fp-kicker {
+    @apply text-[12px] font-bold uppercase tracking-[0.24em] text-pulse-soft;
+  }
+
+  .fp-rule {
+    @apply border-t-2 border-pulse-white;
+  }
+
+  .ink-btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-2xl bg-pulse-white px-4 py-2.5 text-sm font-semibold text-pulse-paper transition duration-150 hover:bg-pulse-lavender;
+  }
+}
+
+@layer utilities {
+  .scrollbar-thin {
+    scrollbar-width: thin;
+  }
+  .animate-progress {
+    transition: width 0.5s ease-in-out;
+  }
+
+  .pulse-progress {
+    background-image: linear-gradient(90deg, #08775d, #0b8468, #c85f43);
+    box-shadow: 0 0 18px rgba(8, 119, 93, 0.28);
+  }
+
+  .floating-label {
+    @apply pointer-events-none absolute left-4 top-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-pulse-muted transition;
+  }
+
+  .loader {
+    width: 100px;
+    height: 40px;
+    --loader-color: #fff4e4;
+    --g: radial-gradient(farthest-side, #0000 calc(95% - 3px), var(--loader-color) calc(100% - 3px) 98%, #0000 101%) no-repeat;
+    background: var(--g), var(--g), var(--g);
+    background-size: 30px 30px;
+    animation: l9 1s infinite alternate;
+  }
+
+  .loader-sm {
+    width: 42px;
+    height: 18px;
+    background-size: 12px 12px;
+  }
+
+  .loader-md {
+    width: 70px;
+    height: 28px;
+    background-size: 20px 20px;
+  }
+
+  .loader-ink {
+    --loader-color: #090604;
+  }
+}
+
+@keyframes pulse-bar {
+  0%, 100% { opacity: 0.82; }
+  50% { opacity: 1; }
+}
+
+@keyframes l9 {
+  0% {
+    background-position: 0 50%, 50% 50%, 100% 50%;
+  }
+  20% {
+    background-position: 0 0, 50% 50%, 100% 50%;
+  }
+  40% {
+    background-position: 0 100%, 50% 0, 100% 50%;
+  }
+  60% {
+    background-position: 0 50%, 50% 100%, 100% 0;
+  }
+  80% {
+    background-position: 0 50%, 50% 50%, 100% 100%;
+  }
+  100% {
+    background-position: 0 50%, 50% 50%, 100% 50%;
+  }
+}
