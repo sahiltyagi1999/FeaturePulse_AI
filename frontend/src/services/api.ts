@@ -73,10 +73,10 @@ export const jobsApi = {
 };
 
 export const exportApi = {
-  exportPdf: (appId: string) =>
-    api.get(`/apps/${appId}/analyses/latest/export-pdf`, { responseType: 'blob' }),
-  exportReviewsPdf: (appId: string) =>
-    api.get(`/apps/${appId}/reviews/export-pdf`, { responseType: 'blob' }),
+  exportAnalysisCsv: (appId: string) =>
+    api.get(`/apps/${appId}/analyses/latest/export-csv`, { responseType: 'blob' }),
+  exportReviewsCsv: (appId: string) =>
+    api.get(`/apps/${appId}/reviews/export-csv`, { responseType: 'blob' }),
 };
 
 export default api;

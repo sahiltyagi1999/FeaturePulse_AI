@@ -13,74 +13,45 @@ export class ExportController {
 
   constructor(private readonly exportService: ExportService) {}
 
-  private getErrorMessage(error: unknown): string {
-    return error instanceof Error ? error.message : 'Unknown error';
-  }
-
-  private async renderPdf(html: string): Promise<Buffer> {
-    const puppeteer = await import('puppeteer');
-    const browser = await puppeteer.default.launch({
-      headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox'],
-    });
-    try {
-      const page = await browser.newPage();
-      await page.setContent(html, { waitUntil: 'networkidle0' });
-      return page.pdf({
-        format: 'A4',
-        printBackground: true,
-        margin: { top: '20px', bottom: '20px', left: '20px', right: '20px' },
-      });
-    } finally {
-      await browser.close();
-    }
-  }
-
-  @Get('analyses/latest/export-pdf')
-  @ApiOperation({ summary: 'Export latest analysis as PDF' })
-  async exportPdf(
+  @Get('analyses/latest/export-csv')
+  @ApiOperation({ summary: 'Export latest analysis as CSV' })
+  async exportAnalysisCsv(
     @Param('appId') appId: string,
     @Request() req: any,
     @Res() res: Response,
   ) {
     try {
-      const html = await this.exportService.generatePdfHtml(appId, req.user.id);
-      const pdfBuffer = await this.renderPdf(html);
-
+      const csv = await this.exportService.generateAnalysisCsv(appId, req.user.id);
       res.set({
-        'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="featurepulse-report.pdf"`,
-        'Content-Length': pdfBuffer.length,
+        'Content-Type': 'text/csv; charset=utf-8',
+        'Content-Disposition': `attachment; filename="featurepulse-analysis.csv"`,
       });
-      res.end(pdfBuffer);
+      res.send('﻿' + csv); // BOM for Excel compatibility
     } catch (err) {
-      const message = this.getErrorMessage(err);
-      this.logger.error(`Analysis PDF generation failed: ${message}`);
-      res.status(500).json({ error: `PDF generation failed: ${message}` });
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      this.logger.error(`Analysis CSV export failed: ${message}`);
+      res.status(500).json({ error: message });
     }
   }
 
-  @Get('reviews/export-pdf')
-  @ApiOperation({ summary: 'Export app reviews as PDF grouped by star rating' })
-  async exportReviewsPdf(
+  @Get('reviews/export-csv')
+  @ApiOperation({ summary: 'Export all reviews as CSV' })
+  async exportReviewsCsv(
     @Param('appId') appId: string,
     @Request() req: any,
     @Res() res: Response,
   ) {
     try {
-      const html = await this.exportService.generateReviewsPdfHtml(appId, req.user.id);
-      const pdfBuffer = await this.renderPdf(html);
-
+      const csv = await this.exportService.generateReviewsCsv(appId, req.user.id);
       res.set({
-        'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="featurepulse-reviews-by-stars.pdf"`,
-        'Content-Length': pdfBuffer.length,
+        'Content-Type': 'text/csv; charset=utf-8',
+        'Content-Disposition': `attachment; filename="featurepulse-reviews.csv"`,
       });
-      res.end(pdfBuffer);
+      res.send('﻿' + csv); // BOM for Excel compatibility
     } catch (err) {
-      const message = this.getErrorMessage(err);
-      this.logger.error(`Reviews PDF generation failed: ${message}`);
-      res.status(500).json({ error: `Reviews PDF generation failed: ${message}` });
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      this.logger.error(`Reviews CSV export failed: ${message}`);
+      res.status(500).json({ error: message });
     }
   }
 }

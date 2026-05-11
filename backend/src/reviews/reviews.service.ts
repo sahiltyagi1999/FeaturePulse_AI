@@ -81,10 +81,8 @@ export class ReviewsService {
 
     if (rating) query.andWhere('review.rating = :rating', { rating });
     if (platform) query.andWhere('review.platform = :platform', { platform });
-    if (search) query.andWhere('review.reviewText ILIKE :search', { search: `%${search}%` });
     if (startDate) query.andWhere('review.reviewDate >= :startDate', { startDate });
     if (endDate) {
-      // include the full endDate day
       const end = new Date(endDate);
       end.setHours(23, 59, 59, 999);
       query.andWhere('review.reviewDate <= :endDate', { endDate: end });

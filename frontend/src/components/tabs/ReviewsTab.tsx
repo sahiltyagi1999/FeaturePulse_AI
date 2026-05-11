@@ -14,7 +14,6 @@ export function ReviewsTab({ appId }: ReviewsTabProps) {
   const [loading, setLoading] = useState(true);
   const [ratingFilter, setRatingFilter] = useState<number | undefined>();
   const [platformFilter, setPlatformFilter] = useState('');
-  const [searchText, setSearchText] = useState('');
   const [searchInput, setSearchInput] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
@@ -27,7 +26,6 @@ export function ReviewsTab({ appId }: ReviewsTabProps) {
         limit: 20,
         rating: ratingFilter,
         platform: platformFilter || undefined,
-        search: searchText || undefined,
         startDate: startDate || undefined,
         endDate: endDate || undefined,
       });
@@ -39,16 +37,12 @@ export function ReviewsTab({ appId }: ReviewsTabProps) {
     } finally {
       setLoading(false);
     }
-  }, [appId, page, ratingFilter, platformFilter, searchText, startDate, endDate]);
+  }, [appId, page, ratingFilter, platformFilter, startDate, endDate]);
 
   useEffect(() => {
     fetchReviews();
   }, [fetchReviews]);
 
-  const handleSearch = () => {
-    setSearchText(searchInput);
-    setPage(1);
-  };
 
   const renderStars = (rating: number) => (
     <div className="flex gap-0.5">
@@ -61,6 +55,13 @@ export function ReviewsTab({ appId }: ReviewsTabProps) {
     </div>
   );
 
+  const displayed = searchInput.trim()
+    ? reviews.filter((r) =>
+        r.reviewText?.toLowerCase().includes(searchInput.toLowerCase()) ||
+        r.reviewerName?.toLowerCase().includes(searchInput.toLowerCase())
+      )
+    : reviews;
+
   return (
     <div className="space-y-4">
       <div className="fp-card-subtle p-4">
@@ -71,11 +72,10 @@ export function ReviewsTab({ appId }: ReviewsTabProps) {
                 type="text"
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
                 placeholder="Search reviews..."
                 className="fp-input flex-1 px-3 py-2"
               />
-              <button onClick={handleSearch} className="fp-btn-muted px-3 py-2">
+              <button className="fp-btn-muted px-3 py-2">
                 <Search className="w-4 h-4" />
               </button>
             </div>
@@ -100,7 +100,7 @@ export function ReviewsTab({ appId }: ReviewsTabProps) {
             </select>
           </div>
           <div className="flex flex-col sm:flex-row gap-2 items-center">
-            <span className="shrink-0 text-[11px] font-semibold uppercase tracking-[0.14em] text-pulse-muted">Date range</span>
+            <span className="shrink-0 text-[11px] font-semibold uppercase tracking-[0.14em] text-pulse-muted">Review date</span>
             <input
               type="date"
               value={startDate}
@@ -149,7 +149,7 @@ export function ReviewsTab({ appId }: ReviewsTabProps) {
         </div>
       ) : (
         <div className="space-y-3">
-          {reviews.map((review) => (
+          {displayed.map((review) => (
             <div key={review.id} className="fp-card-subtle p-4 transition duration-150 hover:border-pulse-violet/40">
               <div className="flex items-start justify-between gap-4 mb-2">
                 <div className="flex items-center gap-2">

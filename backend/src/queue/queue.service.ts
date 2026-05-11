@@ -1,16 +1,32 @@
-import { Injectable, OnModuleInit } from '@nestjs/common';
+import { Injectable, OnModuleInit, ServiceUnavailableException } from '@nestjs/common';
 import { Queue } from 'bullmq';
 import IORedis from 'ioredis';
+
+function isUpstashLimitError(err: any): boolean {
+  const msg: string = err?.message || '';
+  return (
+    msg.includes('max daily request limit') ||
+    msg.includes('max monthly request limit') ||
+    msg.includes('ERR max') ||
+    msg.includes('RATE_LIMIT_EXCEEDED') ||
+    msg.includes('rate limit')
+  );
+}
 
 let sharedConnection: IORedis | null = null;
 
 function buildConnection(): IORedis {
-  const url = process.env.UPSTASH_REDIS_URL;
+  const rawUrl = process.env.UPSTASH_REDIS_URL;
   const token = process.env.UPSTASH_REDIS_TOKEN;
-  if (!url) throw new Error('UPSTASH_REDIS_URL is not set');
+  if (!rawUrl) throw new Error('UPSTASH_REDIS_URL is not set');
+  if (!token) throw new Error('UPSTASH_REDIS_TOKEN is not set');
 
-  return new IORedis(url, {
-    password: token,
+  // Upstash dashboard gives an HTTPS REST URL; IORedis needs a rediss:// TCP URL.
+  // Extract hostname and build the proper Redis-protocol URL.
+  const host = rawUrl.replace(/^https?:\/\//, '');
+  const redisUrl = `rediss://default:${token}@${host}:6379`;
+
+  return new IORedis(redisUrl, {
     tls: { rejectUnauthorized: false },
     maxRetriesPerRequest: null,
     enableReadyCheck: false,
@@ -47,16 +63,30 @@ export class QueueService implements OnModuleInit {
   }
 
   async addReviewFetchJob(data: { appId: string; jobId: string; limit?: number; startDate?: string; endDate?: string }) {
-    return this.reviewQueue.add('fetch', data, {
-      attempts: 3,
-      backoff: { type: 'exponential', delay: 2000 },
-    });
+    try {
+      return await this.reviewQueue.add('fetch', data, {
+        attempts: 3,
+        backoff: { type: 'exponential', delay: 2000 },
+      });
+    } catch (err) {
+      if (isUpstashLimitError(err)) {
+        throw new ServiceUnavailableException('Free tier quota reached. The monthly Redis limit has been exceeded. Please try again next month or upgrade your plan.');
+      }
+      throw err;
+    }
   }
 
   async addAnalysisJob(data: { appId: string; jobId: string }) {
-    return this.analysisQueue.add('analyse', data, {
-      attempts: 2,
-      backoff: { type: 'fixed', delay: 5000 },
-    });
+    try {
+      return await this.analysisQueue.add('analyse', data, {
+        attempts: 2,
+        backoff: { type: 'fixed', delay: 5000 },
+      });
+    } catch (err) {
+      if (isUpstashLimitError(err)) {
+        throw new ServiceUnavailableException('Free tier quota reached. The monthly Redis limit has been exceeded. Please try again next month or upgrade your plan.');
+      }
+      throw err;
+    }
   }
 }

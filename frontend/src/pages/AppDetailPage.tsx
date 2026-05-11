@@ -1,12 +1,13 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, RefreshCw, BarChart2, Download, X, Trash2, FileText } from 'lucide-react';
+import { ArrowLeft, RefreshCw, BarChart2, Download, X, Trash2, FileText, AlertTriangle } from 'lucide-react';
 import { Navbar } from '../components/Navbar';
 import { OverviewTab } from '../components/tabs/OverviewTab';
 import { ReviewsTab } from '../components/tabs/ReviewsTab';
 import { AnalysisTab } from '../components/tabs/AnalysisTab';
 import { CompetitorTab } from '../components/tabs/CompetitorTab';
 import { appsApi, reviewsApi, analysisApi, exportApi } from '../services/api';
+
 import { useJob } from '../contexts/JobContext';
 
 const TABS = [
@@ -128,6 +129,7 @@ export default function AppDetailPage() {
     statusMessage: '',
   });
   const [reviewsKey, setReviewsKey] = useState(0);
+  const [errorBanner, setErrorBanner] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
     if (!id) return;
@@ -152,12 +154,17 @@ export default function AppDetailPage() {
     return () => window.removeEventListener('jobComplete', handler);
   }, [fetchData]);
 
+  const showError = (err: any, fallback: string) => {
+    const msg: string = err?.response?.data?.message || err?.message || fallback;
+    setErrorBanner(msg);
+  };
+
   const handleFetch = async () => {
     try {
       const status = await reviewsApi.getFetchStatus(id!);
       setFetchModal({ open: true, statusMessage: status.message });
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Failed to get fetch status');
+      showError(err, 'Failed to get fetch status');
     }
   };
 
@@ -171,7 +178,7 @@ export default function AppDetailPage() {
       });
       startJob(jobId);
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Failed to start fetch');
+      showError(err, 'Failed to start fetch');
     }
   };
 
@@ -182,7 +189,7 @@ export default function AppDetailPage() {
       setReviewsKey((k) => k + 1);
       fetchData();
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Failed to delete reviews');
+      showError(err, 'Failed to delete reviews');
     }
   };
 
@@ -191,37 +198,37 @@ export default function AppDetailPage() {
       const { jobId } = await analysisApi.queue(id!);
       startJob(jobId);
     } catch (err: any) {
-      alert(err.response?.data?.message || 'Failed to start analysis');
+      showError(err, 'Failed to start analysis');
     }
   };
 
   const handleExport = async () => {
     try {
-      const response = await exportApi.exportPdf(id!);
-      const blob = new Blob([response.data], { type: 'application/pdf' });
+      const response = await exportApi.exportAnalysisCsv(id!);
+      const blob = new Blob([response.data], { type: 'text/csv' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${app?.appName || 'report'}-featurepulse-analysis.pdf`;
+      a.download = `${app?.appName || 'report'}-featurepulse-analysis.csv`;
       a.click();
       URL.revokeObjectURL(url);
     } catch (err: any) {
-      alert('Export failed: ' + (err.response?.data?.message || err.message));
+      showError(err, 'Export failed');
     }
   };
 
   const handleExportReviews = async () => {
     try {
-      const response = await exportApi.exportReviewsPdf(id!);
-      const blob = new Blob([response.data], { type: 'application/pdf' });
+      const response = await exportApi.exportReviewsCsv(id!);
+      const blob = new Blob([response.data], { type: 'text/csv' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${app?.appName || 'reviews'}-reviews-by-stars.pdf`;
+      a.download = `${app?.appName || 'reviews'}-reviews.csv`;
       a.click();
       URL.revokeObjectURL(url);
     } catch (err: any) {
-      alert('Export failed: ' + (err.response?.data?.message || err.message));
+      showError(err, 'Export failed');
     }
   };
 
@@ -248,6 +255,21 @@ export default function AppDetailPage() {
           onConfirm={handleFetchConfirm}
           onClose={() => setFetchModal({ open: false, statusMessage: '' })}
         />
+      )}
+
+      {errorBanner && (
+        <div className="fp-container pt-4">
+          <div className="flex items-start gap-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" />
+            <p className="flex-1 text-sm text-amber-200">{errorBanner}</p>
+            <button
+              onClick={() => setErrorBanner(null)}
+              className="shrink-0 text-amber-400 transition hover:text-pulse-white"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
       )}
 
       <div className="fp-container py-6">
@@ -283,12 +305,12 @@ export default function AppDetailPage() {
               </button>
               {analysis && (
                 <button onClick={handleExport} className="fp-btn-ghost px-3 py-2">
-                  <Download className="w-4 h-4" /> Export Analysis
+                  <Download className="w-4 h-4" /> Export CSV
                 </button>
               )}
               {app.totalReviews > 0 && (
                 <button onClick={handleExportReviews} className="fp-btn-ghost px-3 py-2">
-                  <FileText className="w-4 h-4" /> Reviews PDF
+                  <FileText className="w-4 h-4" /> Reviews CSV
                 </button>
               )}
               {app.totalReviews > 0 && (
