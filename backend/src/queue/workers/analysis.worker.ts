@@ -2,7 +2,7 @@ import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Worker, Job } from 'bullmq';
-import Anthropic from '@anthropic-ai/sdk';
+import OpenAI from 'openai';
 import { Analysis } from '../../analysis/entities/analysis.entity';
 import { Review } from '../../reviews/entities/review.entity';
 import { App } from '../../apps/entities/app.entity';
@@ -13,7 +13,7 @@ import { createRedisConnection } from '../queue.service';
 @Injectable()
 export class AnalysisWorker implements OnModuleInit {
   private readonly logger = new Logger(AnalysisWorker.name);
-  private anthropic: Anthropic;
+  private openai: OpenAI;
 
   constructor(
     @InjectRepository(Analysis)
@@ -25,8 +25,8 @@ export class AnalysisWorker implements OnModuleInit {
     private jobsService: JobsService,
     private progressGateway: ProgressGateway,
   ) {
-    this.anthropic = new Anthropic({
-      apiKey: process.env.ANTHROPIC_API_KEY,
+    this.openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
     });
   }
 
@@ -76,29 +76,29 @@ export class AnalysisWorker implements OnModuleInit {
 
       const prompt = this.buildPrompt(app, reviews.length, reviewsText);
 
-      await this.progress(jobId, 'Sending to Claude AI...', 40);
+      await this.progress(jobId, 'Sending to OpenAI...', 40);
 
-      await this.progress(jobId, 'Claude is reading reviews...', 50);
-      const message = await this.anthropic.messages.create({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 8000,
-        system: 'You are a senior product strategist and UX researcher. Return ONLY valid JSON. No markdown. No explanation. No text outside the JSON.',
-        messages: [{ role: 'user', content: prompt }],
+      await this.progress(jobId, 'OpenAI is reading reviews...', 50);
+      const response = await this.openai.responses.create({
+        model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+        max_output_tokens: 8000,
+        instructions: 'You are a senior product strategist and UX researcher. Return ONLY valid JSON. No markdown. No explanation. No text outside the JSON.',
+        input: prompt,
       });
 
-      await this.progress(jobId, 'Claude is identifying bugs and fixes...', 65);
-      const responseText = message.content[0].type === 'text' ? message.content[0].text : '';
+      await this.progress(jobId, 'OpenAI is identifying bugs and fixes...', 65);
+      const responseText = response.output_text || '';
 
-      await this.progress(jobId, 'Claude is generating feature ideas...', 78);
+      await this.progress(jobId, 'OpenAI is generating feature ideas...', 78);
       let analysisData: any;
       try {
         const jsonMatch = responseText.match(/\{[\s\S]*\}/);
         analysisData = JSON.parse(jsonMatch ? jsonMatch[0] : responseText);
       } catch {
-        throw new Error('Failed to parse Claude response as JSON');
+        throw new Error('Failed to parse OpenAI response as JSON');
       }
 
-      await this.progress(jobId, 'Claude is analysing competitor mentions...', 88);
+      await this.progress(jobId, 'OpenAI is analysing competitor mentions...', 88);
 
       await this.progress(jobId, 'Saving analysis to database...', 95);
       const analysis = this.analysisRepository.create({
@@ -114,7 +114,7 @@ export class AnalysisWorker implements OnModuleInit {
 
       await this.jobsService.markDone(jobId, 'Analysis complete!');
       this.progressGateway.emitComplete(jobId, 'Analysis complete!');
-    } catch (err) {
+    } catch (err: any) {
       await this.jobsService.markFailed(jobId, err.message);
       this.progressGateway.emitError(jobId, err.message);
       throw err;

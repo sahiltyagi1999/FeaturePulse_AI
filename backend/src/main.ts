@@ -33,7 +33,7 @@ async function bootstrap() {
 
   const config = new DocumentBuilder()
     .setTitle('FeaturePulse AI API')
-    .setDescription('App review analysis powered by Claude AI')
+    .setDescription('App review analysis powered by OpenAI')
     .setVersion('1.0')
     .addBearerAuth()
     .build();

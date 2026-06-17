@@ -1,6 +1,6 @@
 # FeaturePulse AI
 
-FeaturePulse AI is a full-stack SaaS tool that automatically fetches mobile app reviews from the Play Store and App Store, then uses Claude AI to generate prioritized bug fixes, validated feature ideas, competitor threat analysis, and sentiment breakdowns — all delivered with live progress updates via WebSockets. Built with NestJS, React, PostgreSQL, BullMQ (Upstash Redis), and Socket.IO, it demonstrates production-grade architecture including JWT auth, background queue workers, real-time progress streaming, and AI-powered analysis at scale.
+FeaturePulse AI is a full-stack SaaS tool that automatically fetches mobile app reviews from the Play Store and App Store, then uses OpenAI to generate prioritized bug fixes, validated feature ideas, competitor threat analysis, and sentiment breakdowns — all delivered with live progress updates via WebSockets. Built with NestJS, React, PostgreSQL, BullMQ (Upstash Redis), and Socket.IO, it demonstrates production-grade architecture including JWT auth, background queue workers, real-time progress streaming, and AI-powered analysis at scale.
 
 ## Architecture Overview
 
@@ -21,14 +21,14 @@ FeaturePulse AI is a full-stack SaaS tool that automatically fetches mobile app 
                               ┌────────────────┼────────────────┐
                               │                │                │
                      ┌────────▼──────┐  ┌──────▼───────┐  ┌────▼────────┐
-                     │  PostgreSQL   │  │  Upstash Redis│  │ Claude API  │
-                     │  (TypeORM)    │  │  + BullMQ     │  │(Anthropic)  │
+                     │  PostgreSQL   │  │  Upstash Redis│  │ OpenAI API  │
+                     │  (TypeORM)    │  │  + BullMQ     │  │             │
                      └───────────────┘  └───────────────┘  └────────────┘
 ```
 
 ### Key Flows
 - **Review Fetch**: User triggers → Job created in DB → BullMQ worker scrapes stores → Emits Socket.IO progress → Saves to PostgreSQL
-- **AI Analysis**: User triggers → Worker loads reviews → Builds Claude prompt → Streams back structured JSON → Saves to DB → Notifies frontend
+- **AI Analysis**: User triggers → Worker loads reviews → Builds OpenAI prompt → Streams back structured JSON → Saves to DB → Notifies frontend
 - **Real-time Progress**: Every worker step emits WebSocket event → Frontend progress bar animates live 0→100%
 
 ## Tech Stack
@@ -38,7 +38,7 @@ FeaturePulse AI is a full-stack SaaS tool that automatically fetches mobile app 
 | Backend | NestJS (TypeScript), TypeORM |
 | Database | PostgreSQL |
 | Cache/Queue | Upstash Redis + BullMQ |
-| AI | Claude claude-sonnet-4-20250514 (Anthropic SDK) |
+| AI | OpenAI Responses API (OpenAI SDK) |
 | Real-time | Socket.IO |
 | Auth | JWT + bcrypt |
 | Frontend | React 18, Vite, Tailwind CSS |
@@ -52,7 +52,7 @@ FeaturePulse AI is a full-stack SaaS tool that automatically fetches mobile app 
 - Node.js 18+
 - PostgreSQL database (local or hosted, e.g., Supabase free tier)
 - [Upstash Redis](https://upstash.com) account (free, no credit card)
-- [Anthropic API key](https://console.anthropic.com)
+- OpenAI API key
 
 ### 1. Backend Setup
 
@@ -68,7 +68,8 @@ Fill in `backend/.env`:
 ```env
 DATABASE_URL=postgresql://user:password@localhost:5432/featurepulse
 JWT_SECRET=your-super-secret-key-at-least-32-chars
-ANTHROPIC_API_KEY=sk-ant-...
+OPENAI_API_KEY=sk-...
+OPENAI_MODEL=gpt-4o-mini
 UPSTASH_REDIS_URL=rediss://your-upstash-endpoint
 UPSTASH_REDIS_TOKEN=your-upstash-token
 FRONTEND_URL=http://localhost:5173
@@ -125,7 +126,7 @@ The demo account comes with a pre-seeded Spotify app with 15 reviews and a full 
 
 ### Core Features
 - **Multi-platform review fetching** — Play Store + App Store via scraping
-- **AI-powered analysis** — Claude generates structured JSON with bugs, features, sentiment
+- **AI-powered analysis** — OpenAI generates structured JSON with bugs, features, sentiment
 - **Live progress tracking** — WebSocket-powered progress bar during fetch/analysis jobs
 - **Competitor comparison** — Add competitor apps, compare sentiment side-by-side
 - **PDF/HTML export** — Full report with charts, fixes, and feature ideas
@@ -213,7 +214,8 @@ _(Add screenshots here)_
 |----------|-------------|
 | `DATABASE_URL` | PostgreSQL connection string |
 | `JWT_SECRET` | Secret for JWT signing (32+ chars recommended) |
-| `ANTHROPIC_API_KEY` | API key from console.anthropic.com |
+| `OPENAI_API_KEY` | OpenAI API key |
+| `OPENAI_MODEL` | OpenAI model for analysis (default: `gpt-4o-mini`) |
 | `UPSTASH_REDIS_URL` | Upstash Redis URL (starts with `rediss://`) |
 | `UPSTASH_REDIS_TOKEN` | Upstash Redis auth token |
 | `FRONTEND_URL` | Frontend origin for CORS (default: `http://localhost:5173`) |
