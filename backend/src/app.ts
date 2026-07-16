@@ -1,7 +1,7 @@
 import express from "express";
 import cors from "cors";
 import swaggerUi from "swagger-ui-express";
-import { apiRouter } from "./routes";
+import { router } from "./routes";
 import { handleError, notFound } from "./middleware/error.middleware";
 const documented = [
   ["post", "/auth/register"],
@@ -41,7 +41,7 @@ export const createApp = () => {
     }),
   );
   app.use(express.json({ limit: "1mb" }));
-  app.use(apiRouter);
+  app.use(router);
   app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(docs));
   app.use(notFound);
   app.use(handleError);
