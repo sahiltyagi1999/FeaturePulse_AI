@@ -1,48 +1,28 @@
-import { NestFactory } from '@nestjs/core';
-import { Logger, ValidationPipe } from '@nestjs/common';
-import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
-import { AppModule } from './app.module';
-import { HttpExceptionFilter } from './common/filters/http-exception.filter';
-import { TransformInterceptor } from './common/interceptors/transform.interceptor';
-import * as dotenv from 'dotenv';
-dotenv.config();
-
-async function bootstrap() {
-  const logger = new Logger('Bootstrap');
-  const app = await NestFactory.create(AppModule);
-
-  app.enableCors({
-    origin: [
-      process.env.FRONTEND_URL || 'http://localhost:5173',
-      'http://localhost:5173',
-      'http://localhost:5174',
-    ],
-    credentials: true,
-  });
-
-  app.useGlobalPipes(
-    new ValidationPipe({
-      whitelist: true,
-      forbidNonWhitelisted: false,
-      transform: true,
-    }),
+import "dotenv/config";
+import http from "http";
+import { Server } from "socket.io";
+import { createApp } from "./app";
+import { connectDatabase } from "./config/database";
+import { initializeQueues } from "./infrastructure/queue/queues";
+import { startAnalysisWorker } from "./infrastructure/queue/analysis.worker";
+import { startReviewWorker } from "./infrastructure/queue/review.worker";
+import { initializeProgressSocket } from "./infrastructure/websocket/progress.socket";
+export const startServer = async () => {
+  if (!process.env.DATABASE_URL) throw new Error("DATABASE_URL is not set");
+  await connectDatabase();
+  initializeQueues();
+  const app = createApp();
+  const server = http.createServer(app);
+  initializeProgressSocket(new Server(server, { cors: { origin: "*" } }));
+  startReviewWorker();
+  startAnalysisWorker();
+  const port = Number(process.env.PORT) || 3000;
+  server.listen(port, () =>
+    console.log(`FeaturePulse AI Express backend running on port ${port}`),
   );
-
-  app.useGlobalFilters(new HttpExceptionFilter());
-  app.useGlobalInterceptors(new TransformInterceptor());
-
-  const config = new DocumentBuilder()
-    .setTitle('FeaturePulse AI API')
-    .setDescription('App review analysis powered by OpenAI')
-    .setVersion('1.0')
-    .addBearerAuth()
-    .build();
-  const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api/docs', app, document);
-
-  const port = process.env.PORT || 3000;
-  await app.listen(port);
-  logger.log(`FeaturePulse AI backend running on port ${port}`);
-  logger.log(`Swagger docs: http://localhost:${port}/api/docs`);
-}
-bootstrap();
+  return server;
+};
+startServer().catch((error) => {
+  console.error("Backend startup failed:", error);
+  process.exit(1);
+});
